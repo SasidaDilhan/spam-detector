@@ -2,16 +2,16 @@ import imaplib
 import email
 import time
 import joblib
-from spam_detector import clean_text  # your clean_text function
+import re, string
 
 # -----------------------------
 # CONFIG
 # -----------------------------
 IMAP_HOST = 'imap.gmail.com'
-EMAIL_USER = 'your_email@gmail.com'
-EMAIL_PASS = 'your_app_password'  # Use App Password
+EMAIL_USER = 'logobuddy98@gmail.com'
+EMAIL_PASS = 'knvo jyki plow sekj'  # Use App Password
 CHECK_INTERVAL = 300  # seconds
-SPAM_THRESHOLD = 0.8
+SPAM_THRESHOLD = 0.4
 
 # Load trained model
 pipeline = joblib.load("models/spam_detector_pipeline.joblib")
@@ -24,6 +24,12 @@ mail.login(EMAIL_USER, EMAIL_PASS)
 mail.select('inbox')
 
 print("Connected to mailbox. Checking emails every 5 minutes...\n")
+
+def clean_text(text):
+    text = text.lower()
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    text = re.sub(r'\d+', '', text)
+    return text.strip()
 
 # -----------------------------
 # FUNCTION TO PROCESS EMAILS
@@ -45,29 +51,36 @@ def process_email(email_id):
     # Clean text and predict
     clean_body = clean_text(body)
     prob = pipeline.predict_proba([clean_body])[0]
-    label = 'spam' if prob[1] >= SPAM_THRESHOLD else 'ham'
+    spam_prob = pipeline.predict_proba([clean_body])[0][1]  # probability of spam
+    label = 'spam' if spam_prob >= SPAM_THRESHOLD else 'ham'
 
     print(f"From: {msg['From']}")
     print(f"Subject: {msg['Subject']}")
-    print(f"Predicted: {label} (spam prob: {prob[1]:.2f})")
+    # print(f"Predicted: {label} (spam prob: {prob[1]:.2f})")
+    print(f"Predicted: {label}")
     print("-" * 50)
 
     # Optional: Move spam emails to Gmail Spam folder
     if label == 'spam':
-        mail.store(email_id, '+X-GM-LABELS', 'Spam')  # Gmail specific
+     mail.store(email_id, '+X-GM-LABELS', '\\Spam')  # Gmail system label
+
 
 # -----------------------------
-# LOOP TO CHECK EMAILS
+# FETCH UNREAD EMAILS ONCE
 # -----------------------------
-while True:
-    status, messages = mail.search(None, 'UNSEEN')  # only unread emails
-    email_ids = messages[0].split()
+status, messages = mail.search(None, 'UNSEEN')
+email_ids = messages[0].split()
 
-    if email_ids:
-        print(f"{len(email_ids)} new email(s) found.\n")
-        for eid in email_ids:
-            process_email(eid)
-    else:
-        print("No new emails.")
+# Take only the last 10 emails
+email_ids = email_ids[-5:]
 
-    time.sleep(CHECK_INTERVAL)
+if email_ids:
+    print(f"{len(email_ids)} new email(s) found (max 5).")
+    for eid in email_ids:
+        process_email(eid)
+else:
+    print("No new emails.")
+
+# Close connection after processing
+mail.logout()
+print("\nDone reading emails.")
