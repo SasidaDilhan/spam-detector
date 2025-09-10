@@ -1,36 +1,46 @@
-import joblib
+import requests
 
-# -----------------------------
-# Load trained pipeline
-# -----------------------------
-model = joblib.load("models/spam_detector_pipeline.joblib")
+# API endpoint
+url_single = "http://127.0.0.1:5000/predict_single"
+url_multiple = "http://127.0.0.1:5000/predict"
 
-# -----------------------------
-# Test messages
-# -----------------------------
-test_messages = [
+# High-confidence test messages
+messages = [
     "Congratulations! You won a free iPhone",
     "Hi John, I will send the report tomorrow.",
-    "You have been selected for a $1000 gift card",
+    "Claim your free vacation now!",
     "Meeting at 10 AM, please confirm",
-    "Claim your free vacation now!"
+    "You have been selected for a $1000 gift card"
 ]
 
 # -----------------------------
-# Custom threshold (optional)
+# Test multiple messages
 # -----------------------------
-threshold = 0.35  # Lower threshold catches more spam
+response = requests.post(url_multiple, json={"messages": messages})
+results = response.json()
 
-# -----------------------------
-# Predict using probabilities
-# -----------------------------
-probs = model.predict_proba(test_messages)
-predictions = ['spam' if p[1] > threshold else 'ham' for p in probs]
+# Print results
+print("----- Multi-Message Test -----")
+for r in results:
+    # Only consider spam if probability >= 0.8
+    if r['spam_prob'] >= 0.8:
+        label = 'spam'
+    else:
+        label = 'ham'
 
-# -----------------------------
-# Display results
-# -----------------------------
-for msg, pred, prob in zip(test_messages, predictions, probs):
-    print(f"Message: {msg}")
-    print(f"Predicted: {pred} (spam prob: {prob[1]:.2f})")
+    print(f"Message: {r['message']}")
+    print(f"Predicted: {label} (spam prob: {r['spam_prob']})")
     print("-" * 50)
+
+# -----------------------------
+# Test a single message
+# -----------------------------
+single_msg = {"message": "You have won a free iPhone!"}
+response_single = requests.post(url_single, json=single_msg)
+res = response_single.json()
+
+label = 'spam' if res['spam_prob'] >= 0.8 else 'ham'
+print("----- Single Message Test -----")
+print(f"Message: {res['message']}")
+print(f"Predicted: {label} (spam prob: {res['spam_prob']})")
+print("-" * 50)
