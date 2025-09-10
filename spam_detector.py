@@ -4,6 +4,8 @@ import numpy as np
 import re
 import joblib
 import matplotlib.pyplot as plt
+import re
+import string
 
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -21,6 +23,18 @@ nltk.download('stopwords', quiet=True)
 nltk.download('punkt', quiet=True)
 STOPWORDS = set(stopwords.words('english'))
 
+
+def clean_text(text):
+    # Lowercase
+    text = text.lower()
+    # Remove punctuation
+    text = text.translate(str.maketrans('', '', string.punctuation))
+    # Remove numbers
+    text = re.sub(r'\d+', '', text)
+    # Remove extra whitespace
+    text = text.strip()
+    return text
+
 def clean_text(text):
     if pd.isna(text):
         return ""
@@ -36,20 +50,20 @@ def clean_text(text):
     tokens = [t for t in text.split() if t not in STOPWORDS]
     return " ".join(tokens)
 
-def load_data(path='data/spam.csv'):
-    df = pd.read_csv(path)  # adapt if encoding differs
-    # normalize columns
-    df = df.rename(columns={df.columns[0]: 'label'}) if 'label' not in df.columns else df
-    if 'text' not in df.columns:
-        # try other common names
-        possible = [c for c in df.columns if 'text' in c.lower() or 'message' in c.lower() or 'body' in c.lower()]
-        if possible:
-            df = df.rename(columns={possible[0]: 'text'})
-        else:
-            raise ValueError("No text column found in CSV. Rename message column to 'text'.")
-    df['label'] = df['label'].map(lambda x: 'spam' if str(x).lower().startswith('s') else 'ham')
-    df['text_clean'] = df['text'].apply(clean_text)
+def load_data(path):
+    df = pd.read_csv(path, encoding="latin-1")
+    
+    # Rename columns if they exist
+    if "v1" in df.columns and "v2" in df.columns:
+        df = df.rename(columns={"v1": "label", "v2": "text"})
+    elif "label" not in df.columns or "text" not in df.columns:
+        raise ValueError("No text column found in CSV. Expected columns: 'label' and 'text'.")
+    
+    # Keep only necessary columns
+    df = df[["label", "text"]]
+    
     return df
+
 
 def evaluate_model(model, X_test, y_test):
     y_pred = model.predict(X_test)
@@ -84,6 +98,11 @@ def main():
     df = load_data('data/spam.csv')
     print("Loaded:", df.shape)
     print(df['label'].value_counts())
+
+# ✅ Create cleaned column
+    df['text_clean'] = df['text'].apply(clean_text)
+
+    
 
     # 2) Split
     X_train, X_test, y_train, y_test = train_test_split(
