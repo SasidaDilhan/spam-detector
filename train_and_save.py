@@ -3,6 +3,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
 import joblib
 import re, string
 
@@ -40,18 +41,16 @@ X_train, X_test, y_train, y_test = train_test_split(
 # -----------------------------
 # Create pipeline (TF-IDF + Naive Bayes)
 # -----------------------------
-pipeline_nb = Pipeline([
+pipeline_lr = Pipeline([
     ('tfidf', TfidfVectorizer(ngram_range=(1,2), min_df=1, max_df=1.0)),
-    ('clf', MultinomialNB())
+    ('clf', LogisticRegression(max_iter=500))
 ])
-
-# -----------------------------
-# Train the model
-# -----------------------------
-pipeline_nb.fit(X_train, y_train)
 
 # -----------------------------
 # Save trained pipeline
 # -----------------------------
-joblib.dump(pipeline_nb, "models/spam_detector_pipeline.joblib")
+pipeline_lr.fit(X_train, y_train)       # <--- train first
+joblib.dump(pipeline_lr, "models/spam_detector_pipeline.joblib")  # <--- save after training
+
+
 print("Model trained and saved to models/spam_detector_pipeline.joblib")
