@@ -44,3 +44,14 @@ print("----- Single Message Test -----")
 print(f"Message: {res['message']}")
 print(f"Predicted: {label} (spam prob: {res['spam_prob']})")
 print("-" * 50)
+
+
+# single_msg = {"message": "You have won a free iPhone!"}
+# response_single = requests.post(url_single, json=single_msg)
+# res = response_single.json()
+
+# label = 'spam' if res['spam_prob'] >= 0.8 else 'ham'
+# print("----- Single Message Test -----")
+# print(f"Message: {res['message']}")
+# print(f"Predicted: {label} (spam prob: {res['spam_prob']})")
+# print("-" * 50)
